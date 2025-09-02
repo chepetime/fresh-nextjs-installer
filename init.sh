@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-
-
 set -e
 
 cleanup() {
@@ -11,75 +9,123 @@ cleanup() {
   fi
 }
 
-echo "Choose a framework to create a new project:"
-options=("Next.js" "Turborepo" "shadcn Next" "shadcn Turbo" "Next Forge" "Install All" "Clean All" "Quit")
-select opt in "${options[@]}"
-do
-  case $opt in
-    "Next.js")
-      cleanup "fresh-next"
-      pnpm create next-app@latest fresh-next --yes
-      break
-      ;;
-    "Turborepo")
-      cleanup "fresh-turbo"
-      pnpm dlx create-turbo@latest fresh-turbo --package-manager pnpm
-      break
-      ;;
-    "shadcn Next")
-      cleanup "fresh-shadcn-next"
-      pnpm create next-app@latest fresh-shadcn-next --yes --use-pnpm
-      (cd fresh-shadcn-next && pnpm dlx shadcn@canary init -y)
-      break
-        ;;
-    "shadcn Turbo")
-      cleanup "fresh-shadcn-turbo"
-      printf 'fresh-shadcn-turbo\n' | pnpm dlx shadcn@canary init -t next-monorepo -d -y
-      break
-      ;;
-    "Next Forge")
-      cleanup "fresh-next-forge"
-      printf 'fresh-next-forge\npnpm\n' | pnpm dlx next-forge@latest init
-      break
-      ;;
-    "Install All")
-      # Clean and install Next.js
-      cleanup "fresh-next"
-      pnpm create next-app@latest fresh-next --yes
+# Helper: detect expect
+have_expect() { command -v expect >/dev/null 2>&1; }
 
-      # Clean and install Turborepo
-      cleanup "fresh-turbo"
-      pnpm dlx create-turbo@latest fresh-turbo --package-manager pnpm
+# Helper: run next-forge init via expect
+run_next_forge_expect() {
+  /usr/bin/env expect <<'EOX'
+  set timeout -1
+  spawn pnpm dlx next-forge@latest init
+  expect {
+    -re {What is your project named\?} { send -- "fresh-next-forge\r"; exp_continue }
+    -re {Which package manager.*} { send -- "pnpm\r"; exp_continue }
+    eof
+  }
+EOX
+}
 
-      # Clean and install shadcn Next
-      cleanup "fresh-shadcn-next"
-      pnpm create next-app@latest fresh-shadcn-next --yes --use-pnpm
-      (cd fresh-shadcn-next && pnpm dlx shadcn@canary init -y)
+# Helper: run shadcn turbo init via expect
+run_shadcn_turbo_expect() {
+  /usr/bin/env expect <<'EOY'
+  set timeout -1
+  spawn pnpm dlx shadcn@canary init -t next-monorepo -d -y
+  expect {
+    -re {What is your project named\?} { send -- "fresh-shadcn-turbo\r"; exp_continue }
+    eof
+  }
+EOY
+}
 
-      # Clean and install shadcn Turbo (monorepo)
-      cleanup "fresh-shadcn-turbo"
-      printf 'fresh-shadcn-turbo\n' | pnpm dlx shadcn@canary init -t next-monorepo -d -y
+install_next() {
+  cleanup "fresh-next"
+  pnpm create next-app@latest fresh-next --yes
+}
 
-      # Clean and install Next Forge
-      cleanup "fresh-next-forge"
-      printf 'fresh-next-forge\npnpm\n' | pnpm dlx next-forge@latest init
+install_turbo() {
+  cleanup "fresh-turbo"
+  pnpm dlx create-turbo@latest fresh-turbo --package-manager pnpm
+}
 
-      break
-      ;;
-    "Clean All")
-      cleanup "fresh-next"
-      cleanup "fresh-turbo"
-      cleanup "fresh-shadcn-next"
-      cleanup "fresh-shadcn-turbo"
-      cleanup "fresh-next-forge"
-      break
-      ;;
-    "Quit")
-      echo "Exiting."
-      break
-      ;;
-    *)
-      echo "Invalid option."
-      ;;
-  esac
-done
+install_shadcn_next() {
+  cleanup "fresh-shadcn-next"
+  pnpm create next-app@latest fresh-shadcn-next --yes --use-pnpm
+  (cd fresh-shadcn-next && pnpm dlx shadcn@canary init -y)
+}
+
+install_shadcn_turbo() {
+  cleanup "fresh-shadcn-turbo"
+  if have_expect; then
+    run_shadcn_turbo_expect
+  else
+    printf 'fresh-shadcn-turbo\n' | pnpm dlx shadcn@canary init -t next-monorepo -d -y
+  fi
+}
+
+install_next_forge() {
+  cleanup "fresh-next-forge"
+  if have_expect; then
+    run_next_forge_expect
+  else
+    printf 'fresh-next-forge' | pnpm dlx next-forge@latest init --package-manager pnpm
+  fi
+}
+
+# Detect argument and set opt directly if provided
+if [ -n "$1" ]; then
+  opt="$1"
+fi
+
+# Show the select menu only if no argument was passed
+if [ -z "$opt" ]; then
+  echo "Choose a framework to create a new project:"
+  options=("Next.js" "Turborepo" "shadcn Next" "shadcn Turbo" "Next Forge" "Install All" "Clean All" "Quit")
+  select opt in "${options[@]}"; do
+    break
+  done
+fi
+case $opt in
+  "Next.js")
+    install_next
+    break
+    ;;
+  "Turborepo")
+    install_turbo
+    break
+    ;;
+  "shadcn Next")
+    install_shadcn_next
+    break
+    ;;
+  "shadcn Turbo")
+    install_shadcn_turbo
+    break
+    ;;
+  "Next Forge")
+    install_next_forge
+    break
+    ;;
+  "Install All")
+    install_next
+    install_turbo
+    install_shadcn_next
+    install_shadcn_turbo
+    install_next_forge
+    break
+    ;;
+  "Clean All")
+    cleanup "fresh-next"
+    cleanup "fresh-turbo"
+    cleanup "fresh-shadcn-next"
+    cleanup "fresh-shadcn-turbo"
+    cleanup "fresh-next-forge"
+    break
+    ;;
+  "Quit")
+    echo "Exiting."
+    break
+    ;;
+  *)
+    echo "Invalid option."
+    ;;
+esac
