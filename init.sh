@@ -40,25 +40,30 @@ EOY
 install_next() {
   cleanup "fresh-next"
   pnpm create next-app@latest fresh-next --yes
+  rm -rf fresh-next/.git
 }
 
 install_turbo() {
   cleanup "fresh-turbo"
   pnpm dlx create-turbo@latest fresh-turbo --package-manager pnpm
+  rm -rf fresh-turbo/.git
 }
 
 install_shadcn_next() {
   cleanup "fresh-shadcn-next"
   pnpm create next-app@latest fresh-shadcn-next --yes --use-pnpm
   (cd fresh-shadcn-next && printf 'neutral\n' | pnpm dlx shadcn@canary init -y)
+  rm -rf fresh-shadcn-next/.git
 }
 
 install_shadcn_turbo() {
   cleanup "fresh-shadcn-turbo"
   if have_expect; then
     run_shadcn_turbo_expect
+    rm -rf fresh-shadcn-turbo/.git
   else
     printf 'fresh-shadcn-turbo\n' | pnpm dlx shadcn@canary init -t next-monorepo -d -y
+    rm -rf fresh-shadcn-turbo/.git
   fi
 }
 
@@ -66,8 +71,10 @@ install_next_forge() {
   cleanup "fresh-next-forge"
   if have_expect; then
     run_next_forge_expect
+    rm -rf fresh-next-forge/.git
   else
     printf 'fresh-next-forge' | pnpm dlx next-forge@latest init --package-manager pnpm
+    rm -rf fresh-next-forge/.git
   fi
 }
 
