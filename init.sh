@@ -50,7 +50,7 @@ install_turbo() {
 install_shadcn_next() {
   cleanup "fresh-shadcn-next"
   pnpm create next-app@latest fresh-shadcn-next --yes --use-pnpm
-  (cd fresh-shadcn-next && pnpm dlx shadcn@canary init -y)
+  (cd fresh-shadcn-next && printf 'neutral\n' | pnpm dlx shadcn@canary init -y)
 }
 
 install_shadcn_turbo() {
@@ -87,23 +87,23 @@ fi
 case $opt in
   "Next.js")
     install_next
-    break
+    exit 0
     ;;
   "Turborepo")
     install_turbo
-    break
+    exit 0
     ;;
   "shadcn Next")
     install_shadcn_next
-    break
+    exit 0
     ;;
   "shadcn Turbo")
     install_shadcn_turbo
-    break
+    exit 0
     ;;
   "Next Forge")
     install_next_forge
-    break
+    exit 0
     ;;
   "Install All")
     install_next
@@ -111,7 +111,7 @@ case $opt in
     install_shadcn_next
     install_shadcn_turbo
     install_next_forge
-    break
+    exit 0
     ;;
   "Clean All")
     cleanup "fresh-next"
@@ -119,13 +119,14 @@ case $opt in
     cleanup "fresh-shadcn-next"
     cleanup "fresh-shadcn-turbo"
     cleanup "fresh-next-forge"
-    break
+    exit 0
     ;;
   "Quit")
     echo "Exiting."
-    break
+    exit 0
     ;;
   *)
     echo "Invalid option."
+    exit 1
     ;;
 esac
